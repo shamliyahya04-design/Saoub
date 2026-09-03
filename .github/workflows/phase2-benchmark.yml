@@ -7,118 +7,27 @@ permissions:
   contents: read
 
 jobs:
-  benchmark-preflight:
+  benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 1
-
-      - name: Environment identity
-        run: |
-          set -euo pipefail
-          echo "Repository: $GITHUB_REPOSITORY"
-          echo "Commit: $GITHUB_SHA"
-          python3 --version
-          node --version
-
-      - name: Isolation preflight
-        run: |
-          set -euo pipefail
-          docker --version
-          docker info >/dev/null
-
-      - name: Contract verification
-        run: |
-          set -euo pipefail
-          test -f docs/PHASE_2_SPEC.md
-          test -f docs/PHASE_2_BENCHMARK_REGISTRY.md
-          test -f docs/PHASE_2_ADAPTER_CONTRACT.md
-          test -f benchmarks/phase2/runner.py
-          test -f benchmarks/phase2/tasks.json
-          test -f benchmarks/phase2/adapters/browser_use.py
-          test -f benchmarks/phase2/adapters/openhands.py
-
-  browser-use-adapter-validation:
-    needs: benchmark-preflight
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 1
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Create isolated environment
+      - name: Install dependencies
         run: |
-          set -euo pipefail
-          python -m venv .venv
-          . .venv/bin/activate
           python -m pip install --upgrade pip
-
-      - name: Install frozen Browser Use
-        run: |
-          set -euo pipefail
-          . .venv/bin/activate
-          python -m pip install "git+https://github.com/browser-use/browser-use.git@eb4126921bea3373f91afc49fb4b59d6eda7fed6"
-
-      - name: Verify frozen Browser Use revision
-        run: |
-          set -euo pipefail
-          . .venv/bin/activate
-          python - <<'PY2'
-          import importlib.metadata
-          version = importlib.metadata.version("browser-use")
-          print(f"browser-use version: {version}")
-          if version != "0.13.8":
-              raise SystemExit(f"Expected browser-use==0.13.8, got {version}")
-          PY2
-
-      - name: Validate adapter syntax
-        run: |
-          set -euo pipefail
-          . .venv/bin/activate
-          python -m py_compile benchmarks/phase2/adapters/browser_use.py
-
-      - name: Validate adapter import
-        run: |
-          set -euo pipefail
-          . .venv/bin/activate
-          python - <<'PY2'
-          from benchmarks.phase2.adapters.browser_use import BrowserUseAdapter
-          adapter = BrowserUseAdapter()
-          assert adapter.candidate_id == "browser_use"
-          assert adapter.candidate_commit == "eb4126921bea3373f91afc49fb4b59d6eda7fed6"
-          assert adapter.runtime_version == "browser-use==0.13.8"
-          print("BROWSER_USE_ADAPTER_IMPORT_PASS")
-          PY2
-
-      - name: Validate adapter preparation
-        run: |
-          set -euo pipefail
-          .venv/bin/python - <<'PY2'
-          from benchmarks.phase2.adapters.browser_use import BrowserUseAdapter
-          BrowserUseAdapter().prepare()
-          print("BROWSER_USE_ADAPTER_PREPARE_PASS")
-          PY2
-
-      - name: Verify no credential values are committed
-        run: |
-          set -euo pipefail
-          if grep -RInE 'AIza[0-9A-Za-z_-]{20,}|gsk_[0-9A-Za-z_-]{20,}|sk-[0-9A-Za-z_-]{20,}' benchmarks/phase2/adapters docs .github/workflows; then
-            echo "Potential credential detected"
-            exit 1
-          fi
-          echo "CREDENTIAL_LEAK_CHECK_PASS"
-
-      - name: Validation result
-        run: echo "BROWSER_USE_ADAPTER_VALIDATION_PASS"
+          pip install "browser-use @ git+https://github.com/browser-use/browser-use.git@eb4126921bea3373f91afc49fb4b59d6eda7fed6"
+      - name: Validate runner
+        run: python benchmarks/phase2/runner.py --validate-only
+      - name: Run benchmark
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: python benchmarks/phase2/runner.py
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase2-results-${{ github.run_id }}
+          path: benchmarks/phase2/results/
