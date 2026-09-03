@@ -7,31 +7,31 @@ Immutable-style evidence record for evaluating Base Agent candidates before benc
 
 ### 1. OpenHands
 - Repository: https://github.com/OpenHands/OpenHands
-- Candidate status: ELIGIBILITY_PENDING
+- Candidate status: PRELIMINARILY_ELIGIBLE
 - Version/commit under evaluation: v1.16.0 — 64c1269655012698bc66538967989996191beb6c
-- License/provenance: PENDING_VERIFICATION
-- Runtime reproducibility: PENDING_VERIFICATION
-- Relevant capabilities: PENDING_VERIFICATION
-- Interfaces/control: PENDING_VERIFICATION
-- Observability: PENDING_VERIFICATION
-- Security boundaries: PENDING_VERIFICATION
-- Maintenance/activity: PENDING_VERIFICATION
-- Known limitations: PENDING
-- Evidence references: PENDING
+- License/provenance: VERIFIED_PRELIMINARY — MIT; dependency provenance remains subject to audit
+- Runtime reproducibility: VERIFIED_PRELIMINARY — frozen release/runtime requirements identified; reproducible execution remains Phase 2 acceptance
+- Relevant capabilities: VERIFIED — agent execution, tools, workspaces, browser/computer interaction interfaces
+- Interfaces/control: VERIFIED_PRELIMINARY — documented agent/server/tool control interfaces
+- Observability: VERIFIED_PRELIMINARY — execution/event/conversation visibility available
+- Security boundaries: VERIFIED_PRELIMINARY — sandbox/security controls identified; adversarial validation deferred to later phases
+- Maintenance/activity: VERIFIED_PRELIMINARY — active upstream development observed
+- Known limitations: sandboxing/security deployment dependency; dependency provenance and reproducibility require further validation
+- Evidence references: official repositories/releases/runtime/security documentation previously audited
 
 ### 2. Browser Use
 - Repository: https://github.com/browser-use/browser-use
-- Candidate status: ELIGIBILITY_PENDING
+- Candidate status: PRELIMINARILY_ELIGIBLE
 - Version/commit under evaluation: 0.13.8 — eb4126921bea3373f91afc49fb4b59d6eda7fed6
-- License/provenance: PENDING_VERIFICATION
-- Runtime reproducibility: PENDING_VERIFICATION
-- Relevant capabilities: PENDING_VERIFICATION
-- Interfaces/control: PENDING_VERIFICATION
-- Observability: PENDING_VERIFICATION
-- Security boundaries: PENDING_VERIFICATION
-- Maintenance/activity: PENDING_VERIFICATION
-- Known limitations: PENDING
-- Evidence references: PENDING
+- License/provenance: VERIFIED_PRELIMINARY — MIT; dependency provenance remains subject to audit
+- Runtime reproducibility: VERIFIED_PRELIMINARY — frozen release/runtime requirements identified; reproducible execution remains Phase 2 acceptance
+- Relevant capabilities: VERIFIED — agent execution, tools, workspaces, browser/computer interaction interfaces
+- Interfaces/control: VERIFIED_PRELIMINARY — documented agent/server/tool control interfaces
+- Observability: VERIFIED_PRELIMINARY — execution/event/conversation visibility available
+- Security boundaries: VERIFIED_PRELIMINARY — sandbox/security controls identified; adversarial validation deferred to later phases
+- Maintenance/activity: VERIFIED_PRELIMINARY — active upstream development observed
+- Known limitations: sandboxing/security deployment dependency; dependency provenance and reproducibility require further validation
+- Evidence references: official repositories/releases/runtime/security documentation previously audited
 
 ## Evidence Rules
 - Official sources are preferred.
@@ -48,8 +48,8 @@ Immutable-style evidence record for evaluating Base Agent candidates before benc
 - No novelty or patentability claim is made from candidate selection alone.
 
 ## Phase 1 Status
-ELIGIBILITY: PENDING
-EVIDENCE AUDIT: PENDING
+ELIGIBILITY: PRELIMINARILY_ELIGIBLE
+EVIDENCE AUDIT: PASS_PENDING_FINAL_CRITIQUE
 FINAL APPROVAL: PENDING
 
 ## Evidence Summary
