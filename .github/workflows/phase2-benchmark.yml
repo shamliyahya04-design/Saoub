@@ -159,6 +159,7 @@ jobs:
           set -euo pipefail
           . .venv/bin/activate
           python -m pip install "openhands-agent-server==1.44.0"
+          pip install "libtmux"
 
       - name: Verify frozen runtimes
         run: |
