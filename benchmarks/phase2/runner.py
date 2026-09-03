@@ -58,16 +58,23 @@ def load_tasks() -> list[dict[str, Any]]:
 
 
 def load_adapter(candidate: str):
-    module = importlib.import_module(
-        f"benchmarks.phase2.adapters.{candidate}"
+    adapter_path = ROOT / "benchmarks" / "phase2" / "adapters" / f"{candidate}.py"
+    if not adapter_path.is_file():
+        raise RuntimeError(f"Adapter file not found: {adapter_path}")
+
+    spec = importlib.util.spec_from_file_location(
+        f"saoub_phase2_adapter_{candidate}",
+        adapter_path,
     )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load adapter: {adapter_path}")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
 
     adapter_class = getattr(module, "Adapter", None)
-
     if adapter_class is None:
-        raise RuntimeError(
-            f"{candidate} adapter does not expose Adapter"
-        )
+        raise RuntimeError(f"{candidate} adapter does not expose Adapter")
 
     return adapter_class()
 
