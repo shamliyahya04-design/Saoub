@@ -1,0 +1,38 @@
+name: Saoub Phase 2 Benchmark
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Saoub
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Environment identity
+        run: |
+          echo "OS=$(uname -a)"
+          echo "PYTHON=$(python3 --version)"
+          echo "DOCKER=$(docker --version)"
+          echo "RUNNER=$RUNNER_OS"
+          echo "ARCH=$(uname -m)"
+
+      - name: Isolation preflight
+        run: |
+          docker info
+          docker run --rm python:3.12-slim python --version
+
+      - name: Benchmark contract verification
+        run: |
+          test -f docs/PHASE_2_SPEC.md
+          test -f docs/PHASE_2_BENCHMARK_REGISTRY.md
+          grep -q "Status: FROZEN" docs/PHASE_2_BENCHMARK_REGISTRY.md
+          grep -q "No hidden retries" docs/PHASE_2_BENCHMARK_REGISTRY.md
+          echo "PHASE2_ENVIRONMENT_READY"
