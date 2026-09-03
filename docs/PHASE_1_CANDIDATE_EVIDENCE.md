@@ -8,7 +8,7 @@ Immutable-style evidence record for evaluating Base Agent candidates before benc
 ### 1. OpenHands
 - Repository: https://github.com/OpenHands/OpenHands
 - Candidate status: ELIGIBILITY_PENDING
-- Version/commit under evaluation: PENDING_FREEZE
+- Version/commit under evaluation: v1.16.0 — 64c1269655012698bc66538967989996191beb6c
 - License/provenance: PENDING_VERIFICATION
 - Runtime reproducibility: PENDING_VERIFICATION
 - Relevant capabilities: PENDING_VERIFICATION
@@ -22,7 +22,7 @@ Immutable-style evidence record for evaluating Base Agent candidates before benc
 ### 2. Browser Use
 - Repository: https://github.com/browser-use/browser-use
 - Candidate status: ELIGIBILITY_PENDING
-- Version/commit under evaluation: PENDING_FREEZE
+- Version/commit under evaluation: 0.13.8 — eb4126921bea3373f91afc49fb4b59d6eda7fed6
 - License/provenance: PENDING_VERIFICATION
 - Runtime reproducibility: PENDING_VERIFICATION
 - Relevant capabilities: PENDING_VERIFICATION
