@@ -83,3 +83,15 @@ FINAL APPROVAL: PENDING
 - Final eligibility requires reproducible runtime verification, provenance/license audit, capability verification, observability verification, security analysis, and formal Phase 1 audit.
 - No patentability or novelty claim is made from this evidence.
 
+
+## Final Engineering Risks and Constraints
+
+- OpenHands v1.16.0: sandboxing is deployment-dependent; unsandboxed execution can expose the host environment.
+- Browser Use 0.13.8: sandbox execution depends on an external Browser Use sandbox service and credential configuration.
+- Both candidates expose telemetry controls; Saoub must retain independent control of observability and data handling.
+- Dependency provenance and runtime reproducibility remain mandatory acceptance checks.
+- These constraints do not constitute benchmark results or final Base Agent selection.
+
+## Phase 1 Decision Status
+
+PRELIMINARILY ELIGIBLE — FINAL AUDIT PENDING
