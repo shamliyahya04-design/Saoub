@@ -1,0 +1,85 @@
+name: Saoub Phase 2 OpenHands Adapter Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  openhands-adapter-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      PHASE2_PROVIDER_ID: ${{ secrets.PHASE2_PROVIDER_ID }}
+      PHASE2_MODEL_ID: ${{ secrets.PHASE2_MODEL_ID }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+
+    steps:
+      - name: Checkout Saoub
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Verify frozen OpenHands revision
+        run: |
+          test -f benchmarks/phase2/adapters/openhands.py
+          grep -q '64c1269655012698bc66538967989996191beb6c' \
+            benchmarks/phase2/adapters/openhands.py
+
+      - name: Install OpenHands frozen revision
+        run: |
+          python3 -m venv .phase2-venv
+          . .phase2-venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install \
+            "git+https://github.com/All-Hands-AI/OpenHands.git@64c1269655012698bc66538967989996191beb6c"
+
+      - name: Verify installed OpenHands
+        run: |
+          . .phase2-venv/bin/activate
+          command -v openhands
+          openhands --help >/dev/null
+          echo "OPENHANDS_RUNTIME=READY"
+
+      - name: Validate adapter contract
+        run: |
+          . .phase2-venv/bin/activate
+          python benchmarks/phase2/adapters/openhands.py
+
+      - name: Secret safety check
+        run: |
+          test -z "$(git status --porcelain --untracked-files=no)"
+          ! git grep -nE \
+            'AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9_-]{20,}|gsk_[A-Za-z0-9_-]{20,}' \
+            -- ':!*.lock' || exit 1
+          echo "SECRET_SCAN=PASS"
+
+      - name: Adapter execution smoke test
+        run: |
+          . .phase2-venv/bin/activate
+          python - <<'PY'
+          import os
+          from benchmarks.phase2.adapters.openhands import OpenHandsAdapter
+
+          required = ["PHASE2_PROVIDER_ID", "PHASE2_MODEL_ID"]
+          missing = [x for x in required if not os.environ.get(x)]
+
+          if missing:
+              raise SystemExit(
+                  "Missing required benchmark configuration: " + ",".join(missing)
+              )
+
+          adapter = OpenHandsAdapter("/tmp/saoub-openhands-test")
+          adapter.prepare()
+
+          print("ADAPTER_PREPARE=PASS")
+          print("PROVIDER_ID=", os.environ["PHASE2_PROVIDER_ID"])
+          print("MODEL_ID=", os.environ["PHASE2_MODEL_ID"])
+          print("SMOKE_EXECUTION=READY")
+          PY
