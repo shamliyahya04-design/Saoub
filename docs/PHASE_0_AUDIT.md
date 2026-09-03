@@ -41,7 +41,10 @@ Prior-art research will precede any invention claim.
 
 ## Phase 0 Decision
 
-PHASE 0 FOUNDATION: READY FOR FINAL APPROVAL
+PHASE 0 FOUNDATION: APPROVED
+
+Approval: FINAL
+Approved for transition to PHASE 1 — Base Agent Selection
 
 Next phase after approval:
 PHASE 1 — Base Agent Selection
