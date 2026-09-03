@@ -11,7 +11,7 @@ import time
 from typing import Any
 
 
-ROOT = pathlib.Path(__file__).resolve().parents[3]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 TASKS_FILE = ROOT / "benchmarks" / "phase2" / "tasks.json"
 RESULTS_DIR = ROOT / "benchmarks" / "phase2" / "results"
 
