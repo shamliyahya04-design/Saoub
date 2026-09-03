@@ -1,0 +1,52 @@
+[
+  {
+    "id": "B01",
+    "class": "information_retrieval",
+    "deterministic": true
+  },
+  {
+    "id": "B02",
+    "class": "planning_execution",
+    "deterministic": true
+  },
+  {
+    "id": "B03",
+    "class": "browser_interaction",
+    "deterministic": true
+  },
+  {
+    "id": "B04",
+    "class": "tool_invocation",
+    "deterministic": true
+  },
+  {
+    "id": "B05",
+    "class": "failure_recovery",
+    "deterministic": true
+  },
+  {
+    "id": "B06",
+    "class": "state_consistency",
+    "deterministic": true
+  },
+  {
+    "id": "B07",
+    "class": "constraint_following",
+    "deterministic": true
+  },
+  {
+    "id": "B08",
+    "class": "evidence_generation",
+    "deterministic": true
+  },
+  {
+    "id": "B09",
+    "class": "security_boundary",
+    "deterministic": true
+  },
+  {
+    "id": "B10",
+    "class": "reproducibility",
+    "deterministic": true
+  }
+]
