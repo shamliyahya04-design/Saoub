@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import importlib
 import json
 import os
@@ -12,6 +13,7 @@ from typing import Any
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 TASKS_FILE = ROOT / "benchmarks" / "phase2" / "tasks.json"
 RESULTS_DIR = ROOT / "benchmarks" / "phase2" / "results"
 
