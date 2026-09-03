@@ -7,27 +7,251 @@ permissions:
   contents: read
 
 jobs:
-  benchmark:
+  benchmark-preflight:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Environment identity
+        run: |
+          set -euo pipefail
+          echo "OS=$(uname -a)"
+          echo "PYTHON=$(python3 --version)"
+          echo "NODE=$(node --version)"
+
+      - name: Isolation preflight
+        run: |
+          set -euo pipefail
+          docker version
+          docker info >/dev/null
+
+      - name: Contract verification
+        run: |
+          set -euo pipefail
+          test -f docs/PHASE_2_SPEC.md
+          test -f docs/PHASE_2_BENCHMARK_REGISTRY.md
+          test -f docs/PHASE_2_PROVIDER_REGISTRY.md
+          test -f docs/PHASE_2_BENCHMARK_MODEL.md
+          test -f benchmarks/phase2/tasks.json
+          test -f benchmarks/phase2/runner.py
+          test -f benchmarks/phase2/adapters/openhands.py
+          test -f benchmarks/phase2/adapters/browser_use.py
+
+  browser-use-adapter-validation:
+    needs: benchmark-preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install dependencies
+
+      - name: Create virtual environment
         run: |
+          set -euo pipefail
+          python -m venv .venv
+          . .venv/bin/activate
           python -m pip install --upgrade pip
-          pip install "browser-use @ git+https://github.com/browser-use/browser-use.git@eb4126921bea3373f91afc49fb4b59d6eda7fed6"
+
+      - name: Install frozen Browser Use
+        run: |
+          set -euo pipefail
+          . .venv/bin/activate
+          python -m pip install \
+            "git+https://github.com/browser-use/browser-use.git@eb4126921bea3373f91afc49fb4b59d6eda7fed6"
+
+      - name: Verify Browser Use revision
+        run: |
+          set -euo pipefail
+          . .venv/bin/activate
+          python - <<'PY'
+          import importlib.metadata
+          version = importlib.metadata.version("browser-use")
+          assert version == "0.13.8", version
+          print(f"browser-use={version}")
+          PY
+
+      - name: Validate adapter
+        run: |
+          set -euo pipefail
+          . .venv/bin/activate
+          python -m py_compile benchmarks/phase2/adapters/browser_use.py
+          python - <<'PY'
+          import importlib.util
+
+          path = "benchmarks/phase2/adapters/browser_use.py"
+          spec = importlib.util.spec_from_file_location("browser_use_adapter", path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+
+          adapter = module.Adapter()
+
+          assert adapter.candidate_id == "browser_use"
+          assert adapter.candidate_commit == "eb4126921bea3373f91afc49fb4b59d6eda7fed6"
+          assert adapter.runtime_version == "browser-use==0.13.8"
+
+          adapter.prepare()
+          print("BROWSER_USE_ADAPTER_VALIDATION_PASS")
+          PY
+
+      - name: Credential pattern scan
+        run: |
+          set -euo pipefail
+          ! grep -RInE \
+            'AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}' \
+            benchmarks/phase2 docs \
+            --exclude='*.md' \
+            --exclude='*.jsonl'
+
+  benchmark:
+    needs:
+      - benchmark-preflight
+      - browser-use-adapter-validation
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Create virtual environment
+        run: |
+          set -euo pipefail
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+
+      - name: Install frozen Browser Use
+        run: |
+          set -euo pipefail
+          . .venv/bin/activate
+          python -m pip install \
+            "git+https://github.com/browser-use/browser-use.git@eb4126921bea3373f91afc49fb4b59d6eda7fed6"
+
+      - name: Install Google GenAI dependency
+        run: |
+          set -euo pipefail
+          . .venv/bin/activate
+          python -m pip install google-genai
+
+      - name: Install OpenHands Agent Server 1.44.0
+        run: |
+          set -euo pipefail
+          . .venv/bin/activate
+          python -m pip install "openhands-agent-server==1.44.0"
+
+      - name: Verify frozen runtimes
+        run: |
+          set -euo pipefail
+          . .venv/bin/activate
+          python - <<'PY'
+          import importlib.metadata
+
+          assert importlib.metadata.version("browser-use") == "0.13.8"
+          assert importlib.metadata.version("openhands-agent-server") == "1.44.0"
+
+          print("FROZEN_RUNTIME_VALIDATION_PASS")
+          PY
+
+      - name: Start isolated OpenHands Agent Server
+        env:
+          SESSION_API_KEY: ${{ github.run_id }}-${{ github.run_attempt }}-runtime
+        run: |
+          set -euo pipefail
+          . .venv/bin/activate
+
+          nohup env \
+            SESSION_API_KEY="$SESSION_API_KEY" \
+            python -m openhands.agent_server \
+              --host 127.0.0.1 \
+              --port 18000 \
+            > /tmp/openhands-agent-server.log 2>&1 &
+
+          echo $! > /tmp/openhands-agent-server.pid
+
+          for i in $(seq 1 60); do
+            if curl -fsS \
+              -H "X-Session-API-Key: $SESSION_API_KEY" \
+              http://127.0.0.1:18000/server_info >/tmp/server-info.json; then
+              cat /tmp/server-info.json
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          cat /tmp/openhands-agent-server.log
+          exit 1
+
       - name: Validate runner
-        run: python benchmarks/phase2/runner.py --validate-only
+        env:
+          OPENHANDS_BASE_URL: http://127.0.0.1:18000
+          OPENHANDS_SESSION_API_KEY: ${{ github.run_id }}-${{ github.run_attempt }}-runtime
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          set -euo pipefail
+          . .venv/bin/activate
+          python benchmarks/phase2/runner.py --validate-only
+
       - name: Run benchmark
         env:
+          OPENHANDS_BASE_URL: http://127.0.0.1:18000
+          OPENHANDS_SESSION_API_KEY: ${{ github.run_id }}-${{ github.run_attempt }}-runtime
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        run: python benchmarks/phase2/runner.py
-      - name: Upload results
+        run: |
+          set -euo pipefail
+          . .venv/bin/activate
+          python benchmarks/phase2/runner.py
+
+      - name: Validate benchmark result count
+        run: |
+          set -euo pipefail
+
+          latest="$(find benchmarks/phase2/results -type f -name '*.jsonl' -print | sort | tail -1)"
+
+          test -n "$latest"
+
+          lines="$(wc -l < "$latest")"
+
+          echo "RESULT_FILE=$latest"
+          echo "RESULT_LINES=$lines"
+
+          test "$lines" -eq 100
+
+      - name: Upload benchmark evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase2-results-${{ github.run_id }}
-          path: benchmarks/phase2/results/
+          name: saoub-phase2-benchmark-${{ github.run_id }}
+          path: |
+            benchmarks/phase2/results/
+            /tmp/openhands-agent-server.log
+            /tmp/server-info.json
+          if-no-files-found: warn
+
+      - name: Stop OpenHands Agent Server
+        if: always()
+        run: |
+          if [ -f /tmp/openhands-agent-server.pid ]; then
+            kill "$(cat /tmp/openhands-agent-server.pid)" || true
+          fi
