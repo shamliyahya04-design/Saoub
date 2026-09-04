@@ -159,6 +159,28 @@ class OpenHandsAdapter:
                 "collection_error": str(exc),
             }
 
+        execution_status = str(state.get("execution_status") or "").lower()
+
+        if execution_status in {"error", "failed", "cancelled", "canceled", "stopped"}:
+            return {
+                "status": "candidate_failure",
+                "failure_class": "execution_failure",
+                "duration_seconds": time.monotonic() - started,
+                "conversation_id": conversation_id,
+                "final_state": state,
+                "events": events,
+            }
+
+        if not isinstance(events, dict) or "collection_error" in events:
+            return {
+                "status": "candidate_unproven",
+                "failure_class": "proof_missing",
+                "duration_seconds": time.monotonic() - started,
+                "conversation_id": conversation_id,
+                "final_state": state,
+                "events": events,
+            }
+
         return {
             "status": "candidate_completed",
             "failure_class": None,
