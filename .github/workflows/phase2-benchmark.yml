@@ -62,7 +62,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m venv .venv
-          . .venv/bin/activate
+          . .venv-openhands/bin/activate
           python -m pip install --upgrade pip
 
       - name: Install frozen Browser Use
