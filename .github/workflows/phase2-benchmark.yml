@@ -62,9 +62,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m venv .venv
-          . .venv-openhands/bin/activate
-          python -m pip install --upgrade pip
-
+          .venv/bin/python -m pip install --upgrade pip
       - name: Install frozen Browser Use
         run: |
           set -euo pipefail
@@ -173,17 +171,15 @@ jobs:
           SESSION_API_KEY: ${{ github.run_id }}-${{ github.run_attempt }}-runtime
         run: |
           set -euo pipefail
-          . .venv/bin/activate
-
           nohup env \
             SESSION_API_KEY="$SESSION_API_KEY" \
-            python -m openhands.agent_server \
-              --host 127.0.0.1 \
-              --port 18000 \
+            .venv-openhands/bin/python -m openhands.agent_server \
+            --host 127.0.0.1 \
+            --port 18000 \
             > /tmp/openhands-agent-server.log 2>&1 &
-
+          
           echo $! > /tmp/openhands-agent-server.pid
-
+          
           for i in $(seq 1 60); do
             if curl -fsS \
               -H "X-Session-API-Key: $SESSION_API_KEY" \
@@ -191,13 +187,11 @@ jobs:
               cat /tmp/server-info.json
               exit 0
             fi
-
             sleep 2
           done
-
+          
           cat /tmp/openhands-agent-server.log
           exit 1
-
       - name: Validate runner
         env:
           OPENHANDS_BASE_URL: http://127.0.0.1:18000
@@ -205,8 +199,18 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           set -euo pipefail
-          . .venv/bin/activate
-          python benchmarks/phase2/runner.py --validate-only
+          .venv-browser-use/bin/python benchmarks/phase2/runner.py --validate-only
+      - name: Enforce candidate runtime isolation invariants
+        run: |
+          set -euo pipefail
+          test -x .venv-browser-use/bin/python
+          test -x .venv-openhands/bin/python
+          test "$( .venv-browser-use/bin/python -c 'import importlib.metadata as m; print(m.version("browser-use"))' )" = "0.13.8"
+          test "$( .venv-openhands/bin/python -c 'import importlib.metadata as m; print(m.version("openhands-agent-server"))' )" = "1.44.0"
+          test "$( .venv-openhands/bin/python -c 'import importlib.metadata as m; print(m.version("openhands-sdk"))' )" = "1.44.0"
+          test "$( .venv-openhands/bin/python -c 'import importlib.metadata as m; print(m.version("openhands-tools"))' )" = "1.44.0"
+          test ! -e .venv
+          echo "RUNTIME_ISOLATION_INVARIANTS_PASS"
 
       - name: Run benchmark
         env:
@@ -215,9 +219,7 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           set -euo pipefail
-          . .venv/bin/activate
-          python benchmarks/phase2/runner.py
-
+          .venv-browser-use/bin/python benchmarks/phase2/runner.py
       - name: Validate benchmark result count
         run: |
           set -euo pipefail
