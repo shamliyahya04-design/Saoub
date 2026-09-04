@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 import os
 import time
-import urllib.parseimport urllib.request
+import urllib.parse
+import urllib.request
 from typing import Any
 
 FROZEN_COMMIT = "64c1269655012698bc66538967989996191beb6"
