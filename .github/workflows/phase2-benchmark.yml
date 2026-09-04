@@ -134,46 +134,40 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Create virtual environment
+      - name: Create isolated candidate environments
         run: |
           set -euo pipefail
-          python -m venv .venv
-          . .venv/bin/activate
-          python -m pip install --upgrade pip
-
+          python -m venv .venv-browser-use
+          python -m venv .venv-openhands
+          .venv-browser-use/bin/python -m pip install --upgrade pip
+          .venv-openhands/bin/python -m pip install --upgrade pip
       - name: Install frozen Browser Use
         run: |
           set -euo pipefail
-          . .venv/bin/activate
-          python -m pip install \
-            "git+https://github.com/browser-use/browser-use.git@eb4126921bea3373f91afc49fb4b59d6eda7fed6"
-
+          .venv-browser-use/bin/python -m pip install             "git+https://github.com/browser-use/browser-use.git@eb4126921bea3373f91afc49fb4b59d6eda7fed6"
       - name: Install Google GenAI dependency
         run: |
           set -euo pipefail
-          . .venv/bin/activate
-          python -m pip install google-genai
-
+          .venv-browser-use/bin/python -m pip install google-genai
       - name: Install OpenHands Agent Server 1.44.0
         run: |
           set -euo pipefail
-          . .venv/bin/activate
-          python -m pip install "openhands-agent-server==1.44.0"
-          pip install "libtmux" "openhands-sdk==1.44.0" "openhands-tools==1.44.0"
-
+          .venv-openhands/bin/python -m pip install             "openhands-agent-server==1.44.0"             "libtmux"             "openhands-sdk==1.44.0"             "openhands-tools==1.44.0"
       - name: Verify frozen runtimes
         run: |
           set -euo pipefail
-          . .venv/bin/activate
-          python - <<'PY'
+          .venv-browser-use/bin/python - <<'PY'
           import importlib.metadata
-
           assert importlib.metadata.version("browser-use") == "0.13.8"
-          assert importlib.metadata.version("openhands-agent-server") == "1.44.0"
-
-          print("FROZEN_RUNTIME_VALIDATION_PASS")
+          print("BROWSER_USE_RUNTIME_VALIDATION_PASS")
           PY
-
+          .venv-openhands/bin/python - <<'PY'
+          import importlib.metadata
+          assert importlib.metadata.version("openhands-agent-server") == "1.44.0"
+          assert importlib.metadata.version("openhands-sdk") == "1.44.0"
+          assert importlib.metadata.version("openhands-tools") == "1.44.0"
+          print("OPENHANDS_RUNTIME_VALIDATION_PASS")
+          PY
       - name: Start isolated OpenHands Agent Server
         env:
           SESSION_API_KEY: ${{ github.run_id }}-${{ github.run_attempt }}-runtime
