@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import time
-import urllib.request
+import urllib.parse\nimport urllib.request
 from typing import Any
 
 FROZEN_COMMIT = "64c1269655012698bc66538967989996191beb6"
@@ -150,10 +150,20 @@ class OpenHandsAdapter:
             time.sleep(2)
 
         try:
-            events = self._req(
-                "GET",
-                f"/api/conversations/{conversation_id}/events",
-            )
+            events = []
+            page_id = None
+            while True:
+                path = f"/api/conversations/{conversation_id}/events/search?limit=100"
+                if page_id:
+                    path += f"&page_id={urllib.parse.quote(page_id, safe='')}"
+                page = self._req("GET", path)
+                items = page.get("items", [])
+                if not isinstance(items, list):
+                    raise RuntimeError("OpenHands events/search returned invalid items")
+                events.extend(items)
+                page_id = page.get("next_page_id")
+                if not page_id:
+                    break
         except Exception as exc:
             events = {
                 "collection_error": str(exc),
